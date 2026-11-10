@@ -160,3 +160,13 @@ def test_token_missing_claims_rejected():
 def test_garbage_rejected(garbage):
     with pytest.raises(TokenError):
         decode_token(garbage, secret=SECRET, expected_type="access")
+
+
+def test_utcnow_is_utc_and_millisecond_precise():
+    from datetime import UTC
+
+    from app.core.clock import utcnow
+
+    now = utcnow()
+    assert now.tzinfo is UTC
+    assert now.microsecond % 1000 == 0

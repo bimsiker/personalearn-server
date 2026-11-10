@@ -1,11 +1,18 @@
 from typing import Literal
 
 from fastapi import APIRouter, Response, status
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from app import db
 
 router = APIRouter(tags=["health"])
+
+
+@router.get("/", include_in_schema=False)
+async def root() -> RedirectResponse:
+    """Opening the bare server address shows the API docs instead of a 404."""
+    return RedirectResponse(url="/docs")
 
 
 class HealthResponse(BaseModel):

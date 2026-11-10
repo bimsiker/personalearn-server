@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import EmailStr, Field, field_validator
+from pydantic import ConfigDict, EmailStr, Field, field_validator
 
 from app.core.security import PASSWORD_MAX_LENGTH, password_problem
 from app.schemas.common import CamelModel
@@ -33,6 +33,17 @@ class _EmailField(CamelModel):
 
 
 class SignupRequest(_EmailField):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "name": "Ada Lovelace",
+                "email": "ada@example.com",
+                "password": "Sunflower42",
+                "role": "student",
+            }
+        }
+    )
+
     name: str = Field(min_length=1, max_length=100)
     password: str
     role: SignupRole
@@ -52,14 +63,22 @@ class SignupRequest(_EmailField):
 
 
 class VerifyEmailRequest(_EmailField):
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"email": "ada@example.com", "code": "123456"}}
+    )
+
     code: str = Field(pattern=r"^\d{6}$", description="The 6-digit code from the email")
 
 
 class EmailRequest(_EmailField):
-    pass
+    model_config = ConfigDict(json_schema_extra={"example": {"email": "ada@example.com"}})
 
 
 class LoginRequest(_EmailField):
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"email": "ada@example.com", "password": "Sunflower42"}}
+    )
+
     password: str = Field(min_length=1, max_length=PASSWORD_MAX_LENGTH)
 
 
@@ -68,6 +87,12 @@ class RefreshRequest(CamelModel):
 
 
 class ResetPasswordRequest(CamelModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {"token": "paste-the-token-from-the-reset-link", "password": "NewPassword99"}
+        }
+    )
+
     token: str = Field(min_length=16, max_length=256)
     password: str
 

@@ -14,6 +14,23 @@ logger = logging.getLogger("app.request")
 _VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9\-]{1,64}$")
 
 
+def add_body_size_limit(app: FastAPI, max_bytes: int) -> None:
+    """Refuse oversized requests up front (by Content-Length) instead of reading them."""
+
+    @app.middleware("http")
+    async def limit_body(request: Request, call_next):
+        declared = request.headers.get("content-length")
+        if declared and declared.isdigit() and int(declared) > max_bytes:
+            return JSONResponse(
+                status_code=413,
+                content={
+                    "code": "PAYLOAD_TOO_LARGE",
+                    "message": f"Request is larger than {max_bytes // 1_000_000} MB.",
+                },
+            )
+        return await call_next(request)
+
+
 def add_request_logging(app: FastAPI) -> None:
     @app.middleware("http")
     async def log_requests(request: Request, call_next):
