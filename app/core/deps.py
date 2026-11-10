@@ -11,6 +11,7 @@ from app.core.errors import AppError
 from app.core.security import TokenError, decode_token
 from app.models.user import Role, User
 from app.services.email import EmailSender
+from app.services.storage import FileStorage
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,10 @@ def get_settings_dep(request: Request) -> Settings:
 
 def get_email_sender(request: Request) -> EmailSender:
     return request.app.state.email_sender
+
+
+def get_storage(request: Request) -> FileStorage:
+    return request.app.state.storage
 
 
 async def get_current_user(

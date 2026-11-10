@@ -12,7 +12,7 @@ from pwdlib import PasswordHash
 
 from app.core.clock import utcnow
 
-TokenType = Literal["access", "refresh"]
+TokenType = Literal["access", "refresh", "file"]
 JWT_ALGORITHM = "HS256"
 
 PASSWORD_MIN_LENGTH = 8

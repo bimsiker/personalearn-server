@@ -36,6 +36,18 @@ PowerShell `.venv\Scripts\Activate.ps1`, Git Bash `source .venv/Scripts/activate
 With `EMAIL_BACKEND=console`, emails such as verification codes and reset links are
 **printed in the server terminal** instead of being sent.
 
+## Try it in Swagger
+
+1. Start the server, then open http://localhost:8000 (it redirects to `/docs`).
+2. `POST /users/signup` → **Try it out** → **Execute**. The example body is valid as is.
+3. Look in the **server terminal** for the box `DEV EMAIL (not actually sent)` and copy the
+   6-digit code. Codes expire after 10 minutes; `POST /users/resend-verification-code`
+   sends a new one (once a minute).
+4. `POST /users/verify-email` with that email and code → copy `accessToken` from the response.
+5. Click **Authorize** (top right), paste the token, then try `GET /users/me` and the
+   `curriculum` endpoints. Access tokens last 15 minutes; log in again or use
+   `/auth/refresh` when it expires.
+
 ## Endpoints so far
 
 | Method | Path | Purpose |
@@ -50,6 +62,12 @@ With `EMAIL_BACKEND=console`, emails such as verification codes and reset links 
 | POST | `/auth/logout` | Revoke a refresh token |
 | POST | `/auth/forgot-password` | Email a reset link (same answer whether or not the account exists) |
 | POST | `/auth/reset-password` | Set a new password with the link's token |
+| POST | `/curriculum/create` | Upload a PDF, Word `.docx` or `.doc` (multipart: `title`, `description`, `file`; max 25 MB) |
+| GET | `/curriculum` | Your uploads, newest first |
+| GET | `/curriculum/{id}` | One upload (404 if it isn't yours) |
+| GET | `/curriculum/{id}/file` | Short-lived link to the original file (5 minutes). PDFs open in the browser; Word files download. `/curriculum/{id}/pdf` is an alias |
+| DELETE | `/curriculum/{id}` | Delete an upload and its file |
+| GET | `/files/download?token=…` | Serves the file from that link (no login header needed) |
 
 Every error response has the shape `{"code": "...", "message": "..."}`.
 
@@ -88,4 +106,13 @@ database is reachable, those tests are skipped.
   every device.
 - Login, forgot-password and resend never reveal whether an email is registered.
 - The `admin` role can't be chosen at signup.
-- Auth endpoints are rate-limited per IP (in-memory for now; Redis later).
+- Auth endpoints and uploads are rate-limited per IP (in-memory for now; Redis later).
+- Uploads may be PDF, Word `.docx` or Word `.doc`. The type is detected from the file's
+  content, not its name. Password-protected, damaged and macro-enabled documents (`.docm`,
+  or `.doc` with macros) are refused. Files are stored under random names and only served
+  through links that expire after 5 minutes.
+- Text extraction: pypdf for PDF; zipfile + defusedxml for `.docx` (blocks malicious XML and
+  zip bombs); olefile + a small [MS-DOC] reader for `.doc`. All are permissively licensed
+  (no AGPL). Scanned, image-only files upload fine but report `hasText: false`.
+- `tests/fixtures/` holds a few small Word-made documents, since genuine `.doc` files can't
+  be created in pure Python.

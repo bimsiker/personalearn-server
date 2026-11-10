@@ -8,13 +8,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import db
-from app.api.routes import auth, health, users
+from app.api.routes import auth, curriculum, files, health, users
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
-from app.core.middleware import add_request_logging
+from app.core.middleware import add_body_size_limit, add_request_logging
 from app.core.rate_limit import RateLimiter
 from app.services.email import build_email_sender
+from app.services.storage import build_storage
 
 logger = logging.getLogger("app")
 
@@ -54,9 +55,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.email_sender = build_email_sender(settings)
     app.state.rate_limiter = RateLimiter(enabled=settings.rate_limit_enabled)
+    app.state.storage = build_storage(settings)
 
     # Order matters: the last middleware added runs first. CORS is outermost so even
     # 500 responses from the logging middleware carry CORS headers.
+    # Body limit: upload size + 1 MB headroom for the multipart form fields.
+    add_body_size_limit(app, settings.max_upload_bytes + 1_000_000)
     add_request_logging(app)
     app.add_middleware(
         CORSMiddleware,
@@ -71,6 +75,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(users.router)
     app.include_router(auth.router)
+    app.include_router(curriculum.router)
+    app.include_router(files.router)
     return app
 
 

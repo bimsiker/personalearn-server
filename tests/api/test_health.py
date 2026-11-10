@@ -63,3 +63,8 @@ async def test_live_database_ping():
         assert await db.ping() is True
     finally:
         await db.disconnect()
+
+
+async def test_root_redirects_to_docs(client):
+    res = await client.get("/", follow_redirects=False)
+    assert res.status_code == 307 and res.headers["location"] == "/docs"

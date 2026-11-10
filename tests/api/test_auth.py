@@ -497,3 +497,28 @@ async def test_require_role_allows_and_forbids(api):
     assert ok.status_code == 200
     assert no.status_code == 403 and no.json()["code"] == "FORBIDDEN"
     assert anon.status_code == 401
+
+
+# ============================================================ Swagger examples
+
+
+def _example(api, path: str) -> dict:
+    schema = api.app.openapi()
+    ref = schema["paths"][path]["post"]["requestBody"]["content"]["application/json"]["schema"]
+    name = ref["$ref"].rsplit("/", 1)[-1]
+    return schema["components"]["schemas"][name]["example"]
+
+
+async def test_swagger_examples_are_valid_requests(api):
+    """'Try it out' in /docs must work without editing the example body."""
+    signup = _example(api, "/users/signup")
+    assert (await api.client.post("/users/signup", json=signup)).status_code == 201
+    code = api.outbox.code_for(signup["email"])
+    verify = {**_example(api, "/users/verify-email"), "code": code}
+    assert (await api.client.post("/users/verify-email", json=verify)).status_code == 200
+    login = _example(api, "/users/login")
+    assert (await api.client.post("/users/login", json=login)).status_code == 200
+    resend = _example(api, "/users/resend-verification-code")
+    assert (
+        await api.client.post("/users/resend-verification-code", json=resend)
+    ).status_code == 200

@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     # --- Abuse protection ---
     rate_limit_enabled: bool = True
 
+    # --- Uploads & files ---
+    upload_dir: str = "uploads"  # used when STORAGE_BACKEND=local
+    max_upload_mb: int = Field(default=25, ge=1, le=100)  # matches the frontend's limit
+    file_link_ttl_seconds: int = Field(default=300, ge=30)  # "View PDF" links expire
+    max_extracted_chars: int = Field(default=500_000, ge=1000)  # keeps documents < 16 MB
+
     # --- Provider switches ---
     storage_backend: Literal["local", "cloudinary"] = "local"
     ai_provider: Literal["fake", "gemini"] = "fake"
@@ -61,6 +67,10 @@ class Settings(BaseSettings):
     @property
     def is_dev_like(self) -> bool:
         return self.app_env in ("development", "test")
+
+    @property
+    def max_upload_bytes(self) -> int:
+        return self.max_upload_mb * 1_000_000
 
     @property
     def cors_origin_list(self) -> list[str]:

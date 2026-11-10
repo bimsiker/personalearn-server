@@ -92,11 +92,16 @@ def _test_mongo_uri() -> str | None:
 
 
 @pytest.fixture(scope="session")
-async def mongo_settings() -> AsyncIterator[Settings]:
+async def mongo_settings(tmp_path_factory) -> AsyncIterator[Settings]:
     uri = _test_mongo_uri()
     if not uri:
         pytest.skip("No MongoDB URI available for database tests")
-    s = make_settings(mongo_uri=uri, mongo_db_name=TEST_DB_NAME, mongo_timeout_ms=8000)
+    s = make_settings(
+        mongo_uri=uri,
+        mongo_db_name=TEST_DB_NAME,
+        mongo_timeout_ms=8000,
+        upload_dir=str(tmp_path_factory.mktemp("uploads")),  # never the real uploads/
+    )
     await db.connect(s)
     if not await db.ping():
         await db.disconnect()
@@ -157,6 +162,22 @@ class Api:
         )
         assert res.status_code == 200, res.text
         return email, res.json()
+
+    async def upload(
+        self,
+        token: str,
+        data: bytes,
+        *,
+        title: str = "Intro to Biology",
+        description: str = "Cells and genetics",
+        filename: str = "biology.pdf",
+    ):
+        return await self.client.post(
+            "/curriculum/create",
+            headers=bearer(token),
+            data={"title": title, "description": description},
+            files={"file": (filename, data, "application/pdf")},
+        )
 
 
 @pytest.fixture

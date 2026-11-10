@@ -13,6 +13,10 @@ dependencies = [
     "pyjwt>=2.10",
     "pwdlib[argon2]>=0.2",
     "email-validator>=2.2",
+    "pypdf>=5.1",
+    "python-multipart>=0.0.18",
+    "olefile>=0.47",
+    "defusedxml>=0.7",
 ]
 
 [project.optional-dependencies]
@@ -52,4 +56,4 @@ select = ["E", "F", "I", "B", "UP", "S"]
 ignore = ["B008"]  # FastAPI's Depends() in defaults is idiomatic
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S101", "S105", "S106"]  # asserts and dummy secrets are fine in tests
+"tests/**" = ["S101", "S105", "S106", "S107"]  # asserts and dummy secrets are fine in tests
