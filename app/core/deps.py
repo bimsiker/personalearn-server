@@ -10,7 +10,9 @@ from app.core.config import Settings
 from app.core.errors import AppError
 from app.core.security import TokenError, decode_token
 from app.models.user import Role, User
+from app.services.ai import AIProvider
 from app.services.email import EmailSender
+from app.services.jobs import JobRunner
 from app.services.storage import FileStorage
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,14 @@ def get_email_sender(request: Request) -> EmailSender:
 
 def get_storage(request: Request) -> FileStorage:
     return request.app.state.storage
+
+
+def get_jobs(request: Request) -> JobRunner:
+    return request.app.state.jobs
+
+
+def get_ai_provider(request: Request) -> AIProvider:
+    return request.app.state.ai
 
 
 async def get_current_user(

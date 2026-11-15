@@ -14,6 +14,7 @@ from app.core.config import Settings
 from app.core.errors import AppError
 from app.models.curriculum import Curriculum, CurriculumMetadata, StoredFile
 from app.models.user import User
+from app.services import learning
 from app.services.documents import (
     CONTENT_TYPES,
     EXTENSIONS,
@@ -152,7 +153,7 @@ async def delete_curriculum(doc: Curriculum, owner: User, storage: FileStorage) 
     await User.find_one({"_id": owner.id, "curricula_created": {"$gt": 0}}).update(
         {"$inc": {"curricula_created": -1}}
     )
-    # Milestone 1 step 4: also delete this material's personalized courses.
+    await learning.delete_for_curriculum(doc.id)
     logger.info("Curriculum deleted curriculum=%s user=%s", doc.id, owner.id)
 
 

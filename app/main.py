@@ -9,12 +9,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import db
 from app.api.routes import auth, curriculum, files, health, users
+from app.api.routes import learning as learning_routes
 from app.core.config import Settings, get_settings
 from app.core.errors import register_error_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import add_body_size_limit, add_request_logging
 from app.core.rate_limit import RateLimiter
+from app.services import learning
+from app.services.ai import build_ai_provider
 from app.services.email import build_email_sender
+from app.services.jobs import JobRunner
 from app.services.storage import build_storage
 
 logger = logging.getLogger("app")
@@ -37,11 +41,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         await db.connect(settings)
         if await db.ping():
             logger.info("MongoDB reachable")
+            await learning.recover_interrupted()
         else:
             logger.error("MongoDB is NOT reachable at startup; /health will report degraded")
         try:
             yield
         finally:
+            await app.state.jobs.shutdown()
             await db.disconnect()
             logger.info("PersonaLearn API stopped")
 
@@ -56,6 +62,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.email_sender = build_email_sender(settings)
     app.state.rate_limiter = RateLimiter(enabled=settings.rate_limit_enabled)
     app.state.storage = build_storage(settings)
+    app.state.ai = build_ai_provider(settings)
+    app.state.jobs = JobRunner()
 
     # Order matters: the last middleware added runs first. CORS is outermost so even
     # 500 responses from the logging middleware carry CORS headers.
@@ -76,6 +84,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(users.router)
     app.include_router(auth.router)
     app.include_router(curriculum.router)
+    app.include_router(learning_routes.router)
     app.include_router(files.router)
     return app
 

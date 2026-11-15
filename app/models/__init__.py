@@ -5,7 +5,8 @@ from beanie import Document
 from app.models.curriculum import Curriculum
 from app.models.refresh_session import RefreshSession
 from app.models.user import User
+from app.models.user_curriculum import UserCurriculum
 
-DOCUMENT_MODELS: list[type[Document]] = [User, RefreshSession, Curriculum]
+DOCUMENT_MODELS: list[type[Document]] = [User, RefreshSession, Curriculum, UserCurriculum]
 
-__all__ = ["DOCUMENT_MODELS", "Curriculum", "RefreshSession", "User"]
+__all__ = ["DOCUMENT_MODELS", "Curriculum", "RefreshSession", "User", "UserCurriculum"]
