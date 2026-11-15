@@ -1,0 +1,76 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 369 >>
+stream
+BT
+/F1 12 Tf
+14 TL
+72 720 Td
+(Introduction to Biology) Tj T*
+(University of Lagos) Tj T*
+(Instructor: Dr. Ada Obi) Tj T*
+(Date: 12/09/2026) Tj T*
+(Contact: ada.obi@unilag.edu.ng) Tj T*
+(Prerequisites: Basic chemistry and high school biology) Tj T*
+(Technology Requirements: A laptop with a modern web browser) Tj T*
+(Week 1 covers cell structure and function.) Tj T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 70 >>
+stream
+BT
+/F1 12 Tf
+14 TL
+72 720 Td
+(Week 2: genetics and heredity.) Tj T*
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 70 >>
+stream
+BT
+/F1 12 Tf
+14 TL
+72 720 Td
+(Week 3: evolution and ecology.) Tj T*
+ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000323 00000 n 
+0000000743 00000 n 
+0000000869 00000 n 
+0000000989 00000 n 
+0000001115 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R >>
+startxref
+1235
+%%EOF
