@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     # --- AI generation limits ---
     max_modules: int = Field(default=2, ge=1)
     max_lessons_per_module: int = Field(default=3, ge=1)
+    max_quizzes_per_lesson: int = Field(default=3, ge=1, le=5)
+    # Seconds the fake AI "thinks" per step, so the generating state is visible locally.
+    fake_ai_delay_seconds: float = Field(default=1.5, ge=0, le=60)
 
     @property
     def is_dev_like(self) -> bool:

@@ -46,6 +46,7 @@ def make_settings(**overrides) -> Settings:
         "log_to_file": False,
         "rate_limit_enabled": False,
         "verification_resend_cooldown_seconds": 60,
+        "fake_ai_delay_seconds": 0,
     }
     values.update(overrides)
     return Settings(_env_file=None, **values)
@@ -189,6 +190,7 @@ async def api(mongo_settings: Settings) -> AsyncIterator[Api]:
     app.state.email_sender = outbox
     async for c in _client_for(app):
         yield Api(client=c, app=app, outbox=outbox, settings=mongo_settings)
+    await app.state.jobs.shutdown()  # no background job may leak into the next test
 
 
 def bearer(token: str) -> dict[str, str]:

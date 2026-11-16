@@ -7,6 +7,7 @@ from app.models.user import User
 from app.schemas.common import error_docs
 from app.schemas.curriculum import CurriculumOut, FileLinkResponse
 from app.services import curriculum as service
+from app.services import learning
 from app.services.storage import FileStorage
 
 router = APIRouter(prefix="/curriculum", tags=["curriculum"])
@@ -49,7 +50,9 @@ async def list_curricula(
     limit: int = Query(default=100, ge=1, le=200),
     user: User = Depends(get_current_user),
 ) -> list[CurriculumOut]:
-    return [CurriculumOut.from_doc(doc) for doc in await service.list_curricula(user, limit=limit)]
+    docs = await service.list_curricula(user, limit=limit)
+    enrolled = await learning.enrolled_curriculum_ids(user)
+    return [CurriculumOut.from_doc(doc, has_lesson=doc.id in enrolled) for doc in docs]
 
 
 @router.get(
@@ -61,7 +64,9 @@ async def list_curricula(
 async def get_curriculum(
     curriculum_id: str, user: User = Depends(get_current_user)
 ) -> CurriculumOut:
-    return CurriculumOut.from_doc(await service.get_owned_curriculum(curriculum_id, user))
+    doc = await service.get_owned_curriculum(curriculum_id, user)
+    enrolled = await learning.enrolled_curriculum_ids(user)
+    return CurriculumOut.from_doc(doc, has_lesson=doc.id in enrolled)
 
 
 async def _file_link(
@@ -122,7 +127,7 @@ async def pdf_link(
     "/{curriculum_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
-    summary="Delete one of your materials and its file",
+    summary="Delete one of your materials, its file and any course built from it",
     responses=error_docs(401, 404),
 )
 async def delete_curriculum(

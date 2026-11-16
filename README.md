@@ -4,7 +4,11 @@ Backend API for PersonaLearn (FastAPI + MongoDB/Beanie). It turns uploaded curri
 personalized courses and connects to AI, storage, email and avatar-video providers. Each
 provider has a local stand-in, so the server runs with **only MongoDB** during development.
 
-## Setup (Windows)
+## Setup
+
+Needs **Python 3.12 or newer** (3.13 recommended).
+
+### Windows
 
 ```bash
 cd personalearn-server
@@ -13,20 +17,43 @@ py -3.13 -m venv .venv
 cp .env.example .env
 ```
 
-Then edit `.env`:
+Activate it (optional when you call `.venv/Scripts/python` directly):
+PowerShell `.venv\Scripts\Activate.ps1`, Git Bash `source .venv/Scripts/activate`.
+
+### macOS
+
+macOS ships Python 3.9, which is too old, so use [uv](https://docs.astral.sh/uv/) to get 3.13.
+Keep the virtual environment **outside OneDrive** (thousands of small files shouldn't sync):
+
+```bash
+python3 -m pip install --user uv                  # once; installs to ~/Library/Python/3.9/bin
+export PATH="$HOME/Library/Python/3.9/bin:$PATH"  # add this line to ~/.zshrc to keep it
+uv venv --python 3.13 ~/.venvs/personalearn-server
+cd personalearn-server
+VIRTUAL_ENV=~/.venvs/personalearn-server uv pip install -e ".[dev]"
+cp .env.example .env
+source ~/.venvs/personalearn-server/bin/activate  # in each new terminal
+```
+
+In VS Code: **Python: Select Interpreter** → **Enter interpreter path…** →
+`~/.venvs/personalearn-server/bin/python`.
+
+### Then edit `.env`
 
 - `MONGO_URI`: your MongoDB Atlas connection string, or `mongodb://localhost:27017`.
+  The name must be exactly `MONGO_URI`. Comments start with `#` (not `//`).
+  For Atlas, add your computer's IP under **Security → Network Access** first.
 - `JWT_SECRET`: your own random value. Generate one with
   `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
   Each developer uses their own; never share or commit it.
 
-Activate the venv (optional when you call `.venv/Scripts/python` directly):
-PowerShell `.venv\Scripts\Activate.ps1`, Git Bash `source .venv/Scripts/activate`.
-
 ## Run
 
+With the virtual environment activated (Windows without activating: prefix with
+`.venv/Scripts/`):
+
 ```bash
-.venv/Scripts/python -m uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
 
 - Health check: http://localhost:8000/health
@@ -50,26 +77,40 @@ With `EMAIL_BACKEND=console`, emails such as verification codes and reset links 
 
 ## Endpoints so far
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/health` | Service + database status |
-| POST | `/users/signup` | Create account (student/parent/teacher); emails a 6-digit code |
-| POST | `/users/verify-email` | Confirm code → login tokens |
-| POST | `/users/resend-verification-code` | New code (60 s cooldown) |
-| POST | `/users/login` | Email + password → tokens (403 `EMAIL_NOT_VERIFIED` if unverified) |
-| GET | `/users/me` | Current user (needs `Authorization: Bearer <accessToken>`) |
-| POST | `/auth/refresh` | New token pair; the old refresh token stops working |
-| POST | `/auth/logout` | Revoke a refresh token |
-| POST | `/auth/forgot-password` | Email a reset link (same answer whether or not the account exists) |
-| POST | `/auth/reset-password` | Set a new password with the link's token |
-| POST | `/curriculum/create` | Upload a PDF, Word `.docx` or `.doc` (multipart: `title`, `description`, `file`; max 25 MB) |
-| GET | `/curriculum` | Your uploads, newest first |
-| GET | `/curriculum/{id}` | One upload (404 if it isn't yours) |
-| GET | `/curriculum/{id}/file` | Short-lived link to the original file (5 minutes). PDFs open in the browser; Word files download. `/curriculum/{id}/pdf` is an alias |
-| DELETE | `/curriculum/{id}` | Delete an upload and its file |
-| GET | `/files/download?token=…` | Serves the file from that link (no login header needed) |
+| Method | Path                                                 | Purpose                                                                                                                                                                                                                                                                            |
+| ------ | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/health`                                          | Service + database status                                                                                                                                                                                                                                                          |
+| POST   | `/users/signup`                                    | Create account (student/parent/teacher); emails a 6-digit code                                                                                                                                                                                                                     |
+| POST   | `/users/verify-email`                              | Confirm code → login tokens                                                                                                                                                                                                                                                       |
+| POST   | `/users/resend-verification-code`                  | New code (60 s cooldown)                                                                                                                                                                                                                                                           |
+| POST   | `/users/login`                                     | Email + password → tokens (403 `EMAIL_NOT_VERIFIED` if unverified)                                                                                                                                                                                                              |
+| GET    | `/users/me`                                        | Current user (needs `Authorization: Bearer <accessToken>`)                                                                                                                                                                                                                       |
+| POST   | `/auth/refresh`                                    | New token pair; the old refresh token stops working                                                                                                                                                                                                                                |
+| POST   | `/auth/logout`                                     | Revoke a refresh token                                                                                                                                                                                                                                                             |
+| POST   | `/auth/forgot-password`                            | Email a reset link (same answer whether or not the account exists)                                                                                                                                                                                                                 |
+| POST   | `/auth/reset-password`                             | Set a new password with the link's token                                                                                                                                                                                                                                           |
+| POST   | `/curriculum/create`                               | Upload a PDF, Word `.docx` or `.doc` (multipart: `title`, `description`, `file`; max 25 MB)                                                                                                                                                                              |
+| GET    | `/curriculum`                                      | Your uploads, newest first                                                                                                                                                                                                                                                         |
+| GET    | `/curriculum/{id}`                                 | One upload (404 if it isn't yours)                                                                                                                                                                                                                                                 |
+| GET    | `/curriculum/{id}/file`                            | Short-lived link to the original file (5 minutes). PDFs open in the browser; Word files download. `/curriculum/{id}/pdf` is an alias                                                                                                                                             |
+| DELETE | `/curriculum/{id}`                                 | Delete an upload and its file                                                                                                                                                                                                                                                      |
+| GET    | `/files/download?token=…`                         | Serves the file from that link (no login header needed)                                                                                                                                                                                                                            |
+| POST   | `/curriculum/{id}/enroll`                          | Personalize: `learningStyle`, `learningPace`, `mediaPreference` (+ optional `avatarId`, `voiceId`, `additionalPreferences`). Returns **202** with `generationStatus: "queued"`; the course is built in the background. Enrolling again after a failure retries |
+| GET    | `/curriculum/{id}/user-curriculum`                 | Your personalized course. Poll every 2-3 s until `generationStatus` is `ready` or `failed` (then `generationError` says why)                                                                                                                                               |
+| GET    | `/user-curricula/{ucId}/lessons/{module}/{lesson}` | One lesson (numbers start at 1) with `previous`/`next` positions. 409 `COURSE_NOT_READY` while generating                                                                                                                                                                    |
 
 Every error response has the shape `{"code": "...", "message": "..."}`.
+
+Quiz questions are sent **without** their answers; answers are checked on the server
+(Phase 5). With `AI_PROVIDER=fake` a course is a fixed sample built around the material's
+title, ready after a few seconds (`FAKE_AI_DELAY_SECONDS`). Type `#fail` in the extra notes
+to see a failed generation.
+
+## Postman and UAT
+
+- `postman/`: a collection with tests for every endpoint, including the negative cases. See
+  [postman/README.md](postman/README.md).
+- `docs/UAT.md`: acceptance scenarios to run in the real frontend, with a results log.
 
 ## Logs
 
@@ -86,11 +127,13 @@ Emails are masked (`d***@example.com`).
 
 ## Tests
 
+With the virtual environment activated:
+
 ```bash
-.venv/Scripts/python -m pytest              # all tests (unit + API)
-.venv/Scripts/python -m pytest --cov=app    # with coverage
-.venv/Scripts/python -m pytest -m live      # opt-in: real Atlas connection check
-.venv/Scripts/python -m ruff check . && .venv/Scripts/python -m ruff format --check .
+python -m pytest              # all tests (unit + API)
+python -m pytest --cov=app    # with coverage
+python -m pytest -m live      # opt-in: real Atlas connection check
+python -m ruff check . && python -m ruff format --check .
 ```
 
 Database tests use a **separate `personalearn_test` database** (from `TEST_MONGO_URI`, or
@@ -106,7 +149,11 @@ database is reachable, those tests are skipped.
   every device.
 - Login, forgot-password and resend never reveal whether an email is registered.
 - The `admin` role can't be chosen at signup.
-- Auth endpoints and uploads are rate-limited per IP (in-memory for now; Redis later).
+- Auth endpoints, uploads and course generation are rate-limited per IP (in-memory for
+  now; Redis later).
+- Uploaded text is treated as untrusted. Every AI response is validated (4 options, answer
+  index in range, size limits from config) and retried once before the course is marked
+  failed; learners only ever see a safe failure message.
 - Uploads may be PDF, Word `.docx` or Word `.doc`. The type is detected from the file's
   content, not its name. Password-protected, damaged and macro-enabled documents (`.docm`,
   or `.doc` with macros) are refused. Files are stored under random names and only served
