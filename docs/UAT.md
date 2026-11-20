@@ -71,15 +71,20 @@ Useful test data: `postman/fixtures/sample-syllabus.pdf` (valid), any `.txt`/`.p
 | 7 | Upload a scanned PDF (no text) and personalize it | Clear message that the file has no readable text |
 | 8 | Compass: `user_curricula` | One per material; `generation_status: "ready"`; quizzes have `correct_index` |
 
-### S5: Read a lesson, take a quiz, see progress *(quiz/progress arrive in Phase 5)*
+### S5: Read a lesson, take a quiz, see progress
 
 | # | Step | Expected |
 |---|---|---|
 | 1 | From the overview, open lesson 1 | Lesson text shows; reading progress bar moves |
 | 2 | **Next lesson** across a module boundary | Goes to the next module's first lesson |
-| 3 | **Take the Quiz**, choose a wrong answer | Marked wrong; explanation shown |
-| 4 | Choose the right answer | Marked correct; lesson marked complete |
-| 5 | Back to the overview | Progress % increased; lesson shows a tick |
+| 3 | **Take the Quiz**, choose a wrong answer | Marked wrong; the correct answer is **not** shown; "tries left" shown |
+| 4 | Ask the tutor about the wrong answer | A hint that doesn't give the answer away |
+| 5 | Choose the right answer | Marked correct; answer and explanation shown; lesson marked complete when all its questions are right |
+| 6 | On another question, choose wrong 3 times | The answer is revealed so you can move on; the question still isn't passed |
+| 7 | Mark a lesson complete without the quiz | Lesson shows a tick; progress goes up |
+| 8 | Back to the overview, then refresh | Progress %, ticks and quiz scores are the same after the refresh |
+| 9 | Finish every lesson | Course shows 100% and completed |
+| 10 | Compass | `quiz_attempts` has one row per answer; `user_curricula` shows `attempts`/`passed` on each quiz |
 
 ### S6: Delete and refresh
 

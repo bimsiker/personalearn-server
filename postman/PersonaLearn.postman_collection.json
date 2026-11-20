@@ -50,6 +50,14 @@
     {
       "key": "pollCount",
       "value": ""
+    },
+    {
+      "key": "tryIndex",
+      "value": ""
+    },
+    {
+      "key": "selectedIndex",
+      "value": ""
     }
   ],
   "item": [
@@ -1054,7 +1062,9 @@
                   "    pm.expect(body.modules.length).to.be.above(0);",
                   "    pm.expect(body.modules[0].lessons.length).to.be.above(0);",
                   "  });",
-                  "  pm.test(\"quiz answers are not sent\", () => pm.expect(pm.response.text()).not.to.include(\"correctIndex\"));",
+                  "  pm.test(\"quiz answers hidden until revealed\", () => body.modules.forEach(m => m.lessons.forEach(l => l.quizzes.forEach(q => {",
+                  "    if (!q.revealed) { pm.expect(q.correctIndex).to.be.null; pm.expect(q.explanation).to.be.null; }",
+                  "  }))));",
                   "}"
                 ]
               }
@@ -1151,6 +1161,276 @@
       ]
     },
     {
+      "name": "4. Quizzes & progress (M1 Phase 5)",
+      "description": "Answers are checked on the server. The correct answer and explanation appear once a question is answered correctly or after 3 wrong tries. A lesson is complete when all its questions are passed, or when marked complete.",
+      "item": [
+        {
+          "name": "Tutor before answering \u2192 409",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/curriculum/{{userCurriculumId}}/explain",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleNumber\": 1,\n  \"lessonNumber\": 1,\n  \"quizIndex\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"error code is ANSWER_FIRST\", () => pm.expect(pm.response.json().code).to.eql(\"ANSWER_FIRST\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Answer question 1 (tries each option)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/curriculum/{{userCurriculumId}}/attempt",
+            "description": "Repeats itself with the next option until the answer is right.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleNumber\": 1,\n  \"lessonNumber\": 1,\n  \"quizIndex\": 0,\n  \"selectedIndex\": {{selectedIndex}}\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Tries options 0, 1, 2, 3 in turn until the answer is right.",
+                  "const tryIndex = Number(pm.collectionVariables.get(\"tryIndex\") || 0);",
+                  "pm.collectionVariables.set(\"selectedIndex\", tryIndex);",
+                  "if (tryIndex > 0) { setTimeout(() => {}, 300); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "const tryIndex = Number(pm.collectionVariables.get(\"tryIndex\") || 0);",
+                  "if (!body.isCorrect && tryIndex < 3) {",
+                  "  pm.test(\"wrong answer: hidden unless revealed\", () => {",
+                  "    if (!body.revealed) { pm.expect(body.correctIndex).to.be.null; pm.expect(body.triesBeforeReveal).to.be.above(0); }",
+                  "  });",
+                  "  pm.collectionVariables.set(\"tryIndex\", tryIndex + 1);",
+                  "  postman.setNextRequest(pm.info.requestName); // try the next option",
+                  "} else {",
+                  "  pm.collectionVariables.set(\"tryIndex\", 0);",
+                  "  pm.test(\"eventually correct\", () => pm.expect(body.isCorrect).to.be.true);",
+                  "  pm.test(\"answer and explanation revealed\", () => {",
+                  "    pm.expect(body.revealed).to.be.true;",
+                  "    pm.expect(body.correctIndex).to.eql(body.selectedIndex);",
+                  "    pm.expect(body.explanation).to.be.a(\"string\");",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ask the tutor about my answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/curriculum/{{userCurriculumId}}/explain",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleNumber\": 1,\n  \"lessonNumber\": 1,\n  \"quizIndex\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"has an explanation\", () => pm.expect(pm.response.json().explanation.length).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Answer option 5 (doesn't exist) \u2192 422",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/curriculum/{{userCurriculumId}}/attempt",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleNumber\": 1,\n  \"lessonNumber\": 1,\n  \"quizIndex\": 0,\n  \"selectedIndex\": 4\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 422\", () => pm.response.to.have.status(422));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Question that doesn't exist \u2192 404",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/curriculum/{{userCurriculumId}}/attempt",
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moduleNumber\": 1,\n  \"lessonNumber\": 1,\n  \"quizIndex\": 9,\n  \"selectedIndex\": 0\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"error code is NOT_FOUND\", () => pm.expect(pm.response.json().code).to.eql(\"NOT_FOUND\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark lesson 1.1 complete",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/user-curricula/{{userCurriculumId}}/lessons/1/1/complete",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"lesson complete\", () => pm.expect(pm.response.json().lesson.isCompleted).to.be.true);",
+                  "pm.test(\"progress above 0\", () => pm.expect(pm.response.json().overallProgress).to.be.above(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark it complete again (no change)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/user-curricula/{{userCurriculumId}}/lessons/1/1/complete",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"not completed twice\", () => pm.expect(pm.response.json().lessonJustCompleted).to.be.false);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Progress",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/progress/{{userCurriculumId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"one lesson done\", () => pm.expect(body.completedLessons).to.be.at.least(1));",
+                  "pm.test(\"resume point is lesson 1.2\", () => pm.expect(body.next).to.eql({moduleNumber: 1, lessonNumber: 2}));",
+                  "pm.test(\"no private preferences\", () => pm.expect(body).not.to.have.property(\"preferences\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Progress for unknown course \u2192 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/progress/64b000000000000000000000",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "9. Clean up",
       "description": "Deletes what this run created and ends the session.",
       "item": [
@@ -1180,6 +1460,26 @@
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/curriculum/{{curriculumId}}",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Its progress is gone \u2192 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/progress/{{userCurriculumId}}",
             "description": ""
           },
           "event": [
