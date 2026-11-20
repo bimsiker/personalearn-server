@@ -98,11 +98,18 @@ With `EMAIL_BACKEND=console`, emails such as verification codes and reset links 
 | POST   | `/curriculum/{id}/enroll`                          | Personalize: `learningStyle`, `learningPace`, `mediaPreference` (+ optional `avatarId`, `voiceId`, `additionalPreferences`). Returns **202** with `generationStatus: "queued"`; the course is built in the background. Enrolling again after a failure retries |
 | GET    | `/curriculum/{id}/user-curriculum`                 | Your personalized course. Poll every 2-3 s until `generationStatus` is `ready` or `failed` (then `generationError` says why)                                                                                                                                               |
 | GET    | `/user-curricula/{ucId}/lessons/{module}/{lesson}` | One lesson (numbers start at 1) with `previous`/`next` positions. 409 `COURSE_NOT_READY` while generating                                                                                                                                                                    |
+| POST   | `/curriculum/{ucId}/attempt`                       | Answer a quiz question: `moduleNumber`, `lessonNumber`, `quizIndex`, `selectedIndex` (0-3). Returns whether it's right, the lesson's state and course progress                                                                                                               |
+| POST   | `/curriculum/{ucId}/explain`                       | Ask the tutor about your answer (answer the question first, or 409 `ANSWER_FIRST`). Hints only until the answer is revealed                                                                                                                                                  |
+| POST   | `/user-curricula/{ucId}/lessons/{m}/{l}/complete`  | Mark a lesson done (safe to repeat). Returns progress and the `next` lesson                                                                                                                                                                                                  |
+| GET    | `/progress/{ucId}`                                 | Progress summary: % done, lessons completed, average quiz score, where to resume                                                                                                                                                                                             |
 
 Every error response has the shape `{"code": "...", "message": "..."}`.
 
-Quiz questions are sent **without** their answers; answers are checked on the server
-(Phase 5). With `AI_PROVIDER=fake` a course is a fixed sample built around the material's
+Quiz answers are checked on the server. A question's correct answer and explanation are
+only sent once it is **revealed**: after a right answer, or after `QUIZ_REVEAL_AFTER_ATTEMPTS`
+wrong tries (default 3). A lesson's quiz score is the % of questions right on the first try.
+A lesson completes when every question is passed (or it's marked complete); course progress
+is completed lessons ÷ lessons. Every answer is also stored in `quiz_attempts`. With `AI_PROVIDER=fake` a course is a fixed sample built around the material's
 title, ready after a few seconds (`FAKE_AI_DELAY_SECONDS`). Type `#fail` in the extra notes
 to see a failed generation.
 
