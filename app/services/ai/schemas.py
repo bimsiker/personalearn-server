@@ -57,6 +57,12 @@ class LessonDraft(_Strict):
     quizzes: list[QuizDraft] = Field(min_length=1)
 
 
+class TutorReply(_Strict):
+    """Tutor: a short explanation of one answer."""
+
+    explanation: str = Field(min_length=1, max_length=1500)
+
+
 class ModuleLessons(_Strict):
     """Agent 2: the lessons of one module."""
 
@@ -87,3 +93,18 @@ class LessonsRequest:
     course_title: str
     module_number: int
     module: ModuleOutline
+
+
+@dataclass(frozen=True)
+class TutorRequest:
+    """Explain one answer. The lesson text came from the AI, but the question context is
+    still treated as data, not instructions."""
+
+    lesson_title: str
+    lesson_script: str
+    question: str
+    options: list[str]
+    selected_index: int
+    correct_index: int
+    may_reveal: bool  # False: explain why the choice is wrong without giving the answer
+    preferences: Preferences

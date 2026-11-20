@@ -12,6 +12,8 @@ from app.services.ai.schemas import (
     LessonsRequest,
     ModuleLessons,
     OutlineRequest,
+    TutorReply,
+    TutorRequest,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,3 +67,8 @@ async def generate_lessons(provider: AIProvider, request: LessonsRequest) -> Mod
     for lesson in result.lessons:
         lesson.quizzes = lesson.quizzes[: request.limits.max_quizzes_per_lesson]
     return result
+
+
+async def explain_answer(provider: AIProvider, request: TutorRequest) -> str:
+    reply = await _validated("tutor reply", lambda: provider.tutor(request), TutorReply)
+    return reply.explanation

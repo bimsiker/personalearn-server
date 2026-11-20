@@ -99,7 +99,12 @@ async def test_enroll_generates_course(api):
     lesson = body["modules"][0]["lessons"][0]
     assert lesson["lessonNumber"] == 1 and lesson["script"] and lesson["quizCount"] >= 1
     assert len(lesson["quizzes"][0]["options"]) == 4
-    assert "correctIndex" not in str(body) and "explanation" not in str(body)
+    assert all(
+        q["correctIndex"] is None and q["explanation"] is None
+        for m in body["modules"]
+        for x in m["lessons"]
+        for q in x["quizzes"]
+    )
 
     me = (await api.client.get("/users/me", headers=bearer(token))).json()
     assert me["curriculaEnrolled"] == 1

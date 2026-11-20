@@ -64,8 +64,13 @@ class PersonalizedMetadata(BaseModel):
 class Quiz(BaseModel):
     question: str
     options: list[str]  # always exactly 4
-    correct_index: int  # 0-3; never sent to the client before an attempt
+    correct_index: int  # 0-3; only sent to the client once revealed (see services/progress.py)
     explanation: str
+    attempts: int = 0
+    passed: bool = False  # answered correctly at least once
+    first_try_correct: bool | None = None  # None until the first attempt
+    last_selected_index: int | None = None
+    revealed: bool = False  # answer + explanation may now be shown (never un-revealed)
 
 
 class MicroLesson(BaseModel):
@@ -107,6 +112,9 @@ class UserCurriculum(Document):
     total_modules: int = 0
     overall_progress: int = 0
     is_completed: bool = False
+    completed_at: datetime | None = None
+    last_activity_at: datetime | None = None
+    revision: int = 0  # bumped on every progress write (optimistic concurrency)
 
     generation_status: GenerationStatus = GenerationStatus.QUEUED
     generation_error: str | None = None  # safe, user-facing reason when FAILED

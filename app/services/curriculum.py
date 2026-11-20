@@ -14,7 +14,7 @@ from app.core.config import Settings
 from app.core.errors import AppError
 from app.models.curriculum import Curriculum, CurriculumMetadata, StoredFile
 from app.models.user import User
-from app.services import learning
+from app.services import learning, quizzes
 from app.services.documents import (
     CONTENT_TYPES,
     EXTENSIONS,
@@ -154,6 +154,7 @@ async def delete_curriculum(doc: Curriculum, owner: User, storage: FileStorage) 
         {"$inc": {"curricula_created": -1}}
     )
     await learning.delete_for_curriculum(doc.id)
+    await quizzes.delete_attempts_for_curriculum(doc.id)
     logger.info("Curriculum deleted curriculum=%s user=%s", doc.id, owner.id)
 
 

@@ -10,7 +10,7 @@ failed state and retry can be checked by hand (fake provider only).
 import asyncio
 from typing import Any
 
-from app.services.ai.schemas import LessonsRequest, OutlineRequest
+from app.services.ai.schemas import LessonsRequest, OutlineRequest, TutorRequest
 
 FAIL_MARKER = "#fail"
 
@@ -127,6 +127,25 @@ class FakeAIProvider:
                 }
             )
         return {"lessons": lessons}
+
+    async def tutor(self, request: TutorRequest) -> dict[str, Any]:
+        await self._think()
+        chosen = request.options[request.selected_index]
+        if request.selected_index == request.correct_index:
+            text = f'Yes: "{chosen}" is right. {_STYLE_TIP[request.preferences.learning_style]}'
+        elif request.may_reveal:
+            answer = request.options[request.correct_index]
+            text = (
+                f'"{chosen}" isn\'t the best choice here. The answer is "{answer}": linking '
+                "new ideas to what you already know makes them stick."
+            )
+        else:
+            text = (
+                f'"{chosen}" isn\'t quite right. Look again at the part of '
+                f'"{request.lesson_title}" about connecting new ideas to what you already '
+                "know, then try again."
+            )
+        return {"explanation": text}
 
 
 def _script(focus: str, module_title: str, style: str) -> str:

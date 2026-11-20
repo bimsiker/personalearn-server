@@ -8,7 +8,7 @@ so a new provider (Gemini in Milestone 2) cannot bypass any of those checks.
 from typing import Any, Protocol
 
 from app.core.config import Settings
-from app.services.ai.schemas import LessonsRequest, OutlineRequest
+from app.services.ai.schemas import LessonsRequest, OutlineRequest, TutorRequest
 
 
 class AIProvider(Protocol):
@@ -20,6 +20,10 @@ class AIProvider(Protocol):
 
     async def lessons(self, request: LessonsRequest) -> dict[str, Any]:
         """Agent 2: {"lessons": [...]} for one module, each with 1-3 quizzes."""
+        ...
+
+    async def tutor(self, request: TutorRequest) -> dict[str, Any]:
+        """Tutor: {"explanation": "..."} about one answer, limited to the lesson."""
         ...
 
 

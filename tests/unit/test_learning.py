@@ -139,6 +139,16 @@ def test_course_response_matches_frontend_and_hides_answers():
     )
     first = body["modules"][0]["lessons"][0]
     assert first["moduleTitle"] == "M1" and first["quizCount"] == 1
-    assert first["quizzes"] == [{"question": "Q?", "options": ["a", "b", "c", "d"]}]
-    text = str(body)
-    assert "correctIndex" not in text and "explanation" not in text and "Because" not in text
+    quiz = first["quizzes"][0]
+    assert quiz["question"] == "Q?" and quiz["options"] == ["a", "b", "c", "d"]
+    assert quiz["revealed"] is False and quiz["attempts"] == 0
+    assert quiz["correctIndex"] is None and quiz["explanation"] is None
+    assert "Because" not in str(body)  # the stored explanation never leaks
+
+
+def test_revealed_quiz_shows_answer():
+    c = course()
+    c.modules[0].lessons[0].quizzes[0] = QUIZ.model_copy(update={"revealed": True, "passed": True})
+    body = UserCurriculumOut.from_doc(c).model_dump(by_alias=True, mode="json")
+    quiz = body["modules"][0]["lessons"][0]["quizzes"][0]
+    assert quiz["correctIndex"] == 2 and quiz["explanation"] == "Because"

@@ -6,9 +6,20 @@ import pytest
 
 from app.models.user_curriculum import Preferences
 from app.services.ai import build_ai_provider
-from app.services.ai.agents import GenerationError, generate_lessons, generate_outline
+from app.services.ai.agents import (
+    GenerationError,
+    explain_answer,
+    generate_lessons,
+    generate_outline,
+)
 from app.services.ai.fake import FakeAIProvider
-from app.services.ai.schemas import LessonsRequest, Limits, ModuleOutline, OutlineRequest
+from app.services.ai.schemas import (
+    LessonsRequest,
+    Limits,
+    ModuleOutline,
+    OutlineRequest,
+    TutorRequest,
+)
 from tests.conftest import make_settings
 
 PREFS = Preferences(learning_style="visual", learning_pace="moderate", media_preference="text")
@@ -70,6 +81,9 @@ class ScriptedProvider:
         return await self._next()
 
     async def lessons(self, request):
+        return await self._next()
+
+    async def tutor(self, request):
         return await self._next()
 
 
@@ -200,3 +214,42 @@ def test_build_provider_switch():
     assert build_ai_provider(make_settings(ai_provider="fake")).name == "fake"
     with pytest.raises(RuntimeError, match="Milestone 2"):
         build_ai_provider(make_settings(ai_provider="gemini"))
+
+
+# ============================================================ tutor
+
+
+def tutor_request(selected: int = 1, *, may_reveal: bool = False) -> TutorRequest:
+    return TutorRequest(
+        lesson_title="Cells",
+        lesson_script="Cells are the unit of life.",
+        question="What is a cell?",
+        options=["A unit of life", "A rock", "A planet", "A song"],
+        selected_index=selected,
+        correct_index=0,
+        may_reveal=may_reveal,
+        preferences=PREFS,
+    )
+
+
+async def test_tutor_reply_validated():
+    text = await explain_answer(ScriptedProvider({"explanation": " Try again. "}), tutor_request())
+    assert text == "Try again."
+
+
+@pytest.mark.parametrize("bad", [{}, {"explanation": ""}, {"explanation": "x" * 1501}, None])
+async def test_invalid_tutor_reply_fails_after_retry(bad):
+    provider = ScriptedProvider(bad, bad)
+    with pytest.raises(GenerationError):
+        await explain_answer(provider, tutor_request())
+    assert provider.calls == 2
+
+
+async def test_fake_tutor_hides_answer_until_allowed():
+    fake = FakeAIProvider()
+    hint = await explain_answer(fake, tutor_request(1, may_reveal=False))
+    assert '"A rock"' in hint and "A unit of life" not in hint
+    full = await explain_answer(fake, tutor_request(1, may_reveal=True))
+    assert '"A unit of life"' in full
+    right = await explain_answer(fake, tutor_request(0))
+    assert right.startswith("Yes")

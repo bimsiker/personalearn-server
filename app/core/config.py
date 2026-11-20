@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     max_modules: int = Field(default=2, ge=1)
     max_lessons_per_module: int = Field(default=3, ge=1)
     max_quizzes_per_lesson: int = Field(default=3, ge=1, le=5)
+    # After this many wrong tries on a question, its answer and explanation are shown.
+    quiz_reveal_after_attempts: int = Field(default=3, ge=1, le=10)
     # Seconds the fake AI "thinks" per step, so the generating state is visible locally.
     fake_ai_delay_seconds: float = Field(default=1.5, ge=0, le=60)
 
